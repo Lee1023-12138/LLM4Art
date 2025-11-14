@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LLM4Art — A Framework of Using LLMs for Art Interpretation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root{ --ring: 0 0 0 6px rgba(99,102,241,.12); }
+    .card{border-radius:1rem;box-shadow:0 10px 40px rgba(2,6,23,.06)}
+    .btn{padding:.65rem 1rem;border-radius:.8rem;transition:all .15s ease}
+    .btn-primary{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff}
+    .btn-primary:hover{filter:brightness(1.05)}
+    .btn-ghost{border:1px solid #e2e8f0;background:#fff}
+    .btn-ghost:hover{background:#f8fafc}
+    .dropzone{border:2px dashed #cbd5e1;border-radius:1rem;padding:1.1rem;text-align:center;transition:all .2s}
+    .dropzone:hover{background:#f8fafc}
+    .dropzone.drag{border-color:#8b5cf6;box-shadow:var(--ring)}
+    details>summary::-webkit-details-marker{display:none}
+    summary{list-style:none}
+    .meta-grid{display:grid;grid-template-columns: 150px 1fr;gap:.4rem .85rem}
+    .meta-key{color:#475569}
+    .meta-val{color:#0f172a}
+    .badge{display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .5rem;border-radius:.5rem;background:#eef2ff;color:#3730a3;font-size:.75rem}
+    .soft-border{border:1px solid rgba(226,232,240,.9)}
+    .blur-header{backdrop-filter:saturate(1.2) blur(8px)}
+    /* loading overlay */
+    .overlay{position:fixed;inset:0;display:none;place-items:center;background:rgba(248,250,252,.6);backdrop-filter:blur(2px);z-index:40}
+    .overlay.show{display:grid}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .spinner{width:44px;height:44px;border-radius:50%;border:4px solid #e2e8f0;border-top-color:#6366f1;animation:spin 1s linear infinite}
+    /* toast */
+    .toast{position:fixed;right:1rem;bottom:1rem;z-index:50;display:none}
+    .toast.show{display:block}
+
+    /* Thumbnail (only inside Input) */
+    .thumb-wrap{margin-top:.6rem;border-radius:.75rem;background:#f1f5f9;border:1px solid #e2e8f0;overflow:hidden}
+    .thumb-canvas{display:block;width:100%;height:auto;max-height:260px;object-fit:contain}
+    .thumb-caption{font-size:.72rem;color:#64748b;margin-top:.25rem}
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-50 text-slate-900">
+
+<!-- Loading overlay -->
+<div id="overlay" class="overlay">
+  <div class="flex flex-col items-center gap-3">
+    <div class="spinner"></div>
+    <div id="overlayText" class="text-sm text-slate-600">Analyzing…</div>
+  </div>
+</div>
+
+<!-- Toast area -->
+<div id="toast" class="toast">
+  <div id="toastBox" class="card soft-border bg-white px-4 py-3 text-sm"></div>
+</div>
+
+<header class="sticky top-0 z-10 blur-header bg-white/70 border-b border-slate-200/70">
+  <div class="mx-auto max-w-7xl px-4 py-4 flex items-center gap-3">
+    <div class="leading-tight">
+      <h1 class="text-xl font-semibold">LLM4Art — A Framework of Using LLMs for Art Interpretation</h1>
+      <p class="text-xs text-slate-600">Upload an image → analyzed by the backend LLM → auto-fill metadata & sections.</p>
+    </div>
+    <div class="ml-auto hidden md:flex text-xs text-slate-500 items-center gap-2">
+      <span class="badge" title="Vision enabled">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 6v12M6 12h12" stroke-width="2" stroke-linecap="round"/></svg>
+        Vision
+      </span>
+      <span id="providerBadge" class="badge">—</span>
+      <span id="modelBadge" class="badge hidden"></span>
+    </div>
+  </div>
+</header>
+
+<main class="mx-auto max-w-7xl px-4 py-6">
+  <!-- Row 1: Input (left) + Preview/Result (right) -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- 1) Input -->
+    <section class="card bg-white soft-border p-4">
+      <h2 class="text-lg font-semibold mb-3">1) Input</h2>
+      <div class="space-y-4">
+        <div id="dropzone" class="dropzone">
+          <input id="fileInput" type="file" accept="image/*" class="hidden" />
+          <p id="dropHint" class="text-slate-600">
+            Drag & drop an image here, or
+            <button id="browseBtn" type="button" class="text-indigo-700 font-medium underline">browse</button>
+          </p>
+          <p class="text-xs text-slate-500 mt-1">The image stays in your browser; only a resized dataURL is sent to the API.</p>
+          <div id="thumbWrap" class="thumb-wrap hidden">
+            <canvas id="thumbCanvas" class="thumb-canvas"></canvas>
+            <div id="thumbCaption" class="thumb-caption"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 pt-1">
+          <button id="rerunBtn" class="btn btn-primary shadow-md">Analyze</button>
+          <button id="exportJsonBtn" class="btn btn-ghost">Export JSON</button>
+          <button id="exportMdBtn" class="btn btn-ghost">Export Markdown</button>
+        </div>
+
+        <div class="text-xs text-slate-500 flex items-center gap-2">
+          <svg class="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17l-3.88-3.88L4 13.41 9 18.41 20 7.41 18.59 6z"/></svg>
+          <span id="status">Ready.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2) Preview (no large image; only result + metadata) -->
+    <section class="card bg-white soft-border p-4">
+      <h2 class="text-lg font-semibold mb-3">2) Preview</h2>
+
+      <div class="grid grid-cols-1 gap-3">
+        <div class="rounded-xl soft-border p-3">
+          <h3 class="font-medium flex items-center gap-2">
+            <svg class="w-5 h-5 text-indigo-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 14h-2v-2h2v2zm0-4h-2V6h2v6z"/></svg>
+            Result status
+          </h3>
+          <p id="llmStatus" class="text-sm text-slate-700 mt-1">Waiting for image…</p>
+        </div>
+
+        <div class="rounded-xl soft-border p-3">
+          <h3 class="font-medium mb-2 flex items-center gap-2">
+            <svg class="w-5 h-5 text-indigo-500" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h10v2H4v-2z"/></svg>
+            Metadata
+          </h3>
+          <div id="metaBox" class="meta-grid text-sm"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Row 2: Analysis (two fixed columns: left visual-related, right history/culture) -->
+  <section class="card bg-white soft-border p-4 mt-6">
+    <h2 class="text-lg font-semibold mb-1">3) Analysis</h2>
+    <p class="text-xs text-slate-500 mb-3">Left: visual-related modules; Right: historical & cultural modules.</p>
+
+    <!-- Fixed two columns -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div id="analysisLeft" class="space-y-3"></div>
+      <div id="analysisRight" class="space-y-3"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="mx-auto max-w-7xl px-4 pb-10 text-xs text-slate-500">
+  <p>Powered by LLM4Art</p>
+</footer>
+
+<script>
+/* ---------------- State ---------------- */
+const state = {
+  img: null,
+  imgNatural: { w: 0, h: 0 },
+  lastImageDataUrl: null,
+  lastObjectUrl: null,
+  lastSig: null,
+  report: null,
+  provider: "—",
+  model: null
+};
+
+/* ---------------- Constants ---------------- */
+const API_BASE = "http://localhost:8787";
+
+/* ---------------- DOM ---------------- */
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const browseBtn = document.getElementById('browseBtn');
+const dropHint  = document.getElementById('dropHint');
+
+const thumbWrap   = document.getElementById('thumbWrap');
+const thumbCanvas = document.getElementById('thumbCanvas');
+const thumbCtx    = thumbCanvas.getContext('2d');
+const thumbCaption= document.getElementById('thumbCaption');
+
+const exportJsonBtn = document.getElementById('exportJsonBtn');
+const exportMdBtn = document.getElementById('exportMdBtn');
+const rerunBtn = document.getElementById('rerunBtn');
+const statusEl = document.getElementById('status');
+const llmStatusEl = document.getElementById('llmStatus');
+const metaBox = document.getElementById('metaBox');
+const overlay = document.getElementById('overlay');
+const overlayText = document.getElementById('overlayText');
+const toast = document.getElementById('toast');
+const toastBox = document.getElementById('toastBox');
+const providerBadge = document.getElementById('providerBadge');
+const modelBadge = document.getElementById('modelBadge');
+
+/* analysis columns */
+const analysisLeft = document.getElementById('analysisLeft');
+const analysisRight = document.getElementById('analysisRight');
+
+/* ---------------- Offscreen canvas for analysis ---------------- */
+const workCanvas = document.createElement('canvas');
+const workCtx = workCanvas.getContext('2d');
+
+/* ---------------- Helpers (UI) ---------------- */
+function showOverlay(v){ overlay.classList.toggle('show', !!v); }
+function setOverlayText(t){ overlayText.textContent = t || 'Analyzing…'; }
+function showToast(msg, ok=true){
+  toastBox.textContent = msg;
+  toastBox.className = `card soft-border px-4 py-3 text-sm ${ok?'text-emerald-700 bg-emerald-50':'text-rose-700 bg-rose-50'}`;
+  toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2600);
+}
+
+/* Module card (collapsible) */
+function sectionCard(title, body, icon){
+  const svgAttrs = icon?.mode === 'stroke'
+    ? 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'
+    : 'fill="currentColor"';
+  return `
+  <div class="rounded-xl soft-border p-3">
+    <details class="group" open>
+      <summary class="flex items-center justify-between cursor-pointer px-1 py-1 rounded-lg hover:bg-slate-50 transition">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-indigo-500" viewBox="0 0 24 24" ${svgAttrs}>
+            <path d="${icon?.d || ''}"/>
+          </svg>
+          <span class="font-semibold">${title}</span>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" class="text-slate-400 group-open:rotate-180 transition" fill="none">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </summary>
+      <div class="mt-2 text-sm text-slate-700 whitespace-pre-wrap px-1">${body||'—'}</div>
+    </details>
+  </div>`;
+}
+
+/* ---------------- Provider detection ---------------- */
+async function detectProvider(){
+  try{
+    const r = await fetch(`${API_BASE}/api/health`);
+    const j = await r.json();
+    const provider = (j?.provider || '—').toString().toLowerCase();
+    state.provider = provider;
+    state.model = j?.model || null;
+
+    providerBadge.textContent = provider === 'openai' ? 'OpenAI' : (provider === 'gemini' ? 'Gemini' : '—');
+    if (state.model){
+      modelBadge.textContent = state.model;
+      modelBadge.classList.remove('hidden');
+    } else {
+      modelBadge.classList.add('hidden');
+    }
+    setOverlayText(`Analyzing with ${providerBadge.textContent}…`);
+  } catch(e){
+    state.provider = '—'; state.model = null;
+    providerBadge.textContent = '—';
+    modelBadge.classList.add('hidden');
+    setOverlayText('Analyzing…');
+  }
+}
+
+/* ---------------- File handling ---------------- */
+function makeSig(f){ return `${f.name}__${f.size}__${f.lastModified}`; }
+
+function handleFiles(files){
+  if(!files || !files.length) return;
+  const f = files[0];
+  if(!f.type.startsWith('image/')){ showToast('Only image files are allowed.', false); return; }
+
+  const sig = makeSig(f);
+  if (state.lastSig === sig) {
+    showToast('Same file ignored (de-duplicated).', true);
+    return;
+  }
+  state.lastSig = sig;
+
+  if (state.lastObjectUrl) {
+    URL.revokeObjectURL(state.lastObjectUrl);
+    state.lastObjectUrl = null;
+  }
+
+  const url = URL.createObjectURL(f);
+  state.lastObjectUrl = url;
+  loadImageSrc(url);
+}
+
+/* ---------------- Upload wiring ---------------- */
+browseBtn.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('drag');
+  const files = e.dataTransfer?.files;
+  if (files && files.length) handleFiles(files);
+});
+fileInput.addEventListener('change', () => {
+  const files = fileInput.files;
+  if (files && files.length) handleFiles(files);
+});
+
+/* ---------------- Image load & rendering ---------------- */
+function loadImageSrc(src){
+  const img = new Image();
+  img.onload = async () => {
+    state.img = img;
+    state.imgNatural = { w: img.naturalWidth, h: img.naturalHeight };
+
+    // 1) Thumbnail (left)
+    drawThumbnail(img);
+
+    // 2) Offscreen for backend (max side 640)
+    prepareWorkCanvas(img);
+
+    // 3) Analyze
+    const dataUrl = workCanvas.toDataURL('image/jpeg', 0.9);
+    state.lastImageDataUrl = dataUrl;
+    await callLLM(dataUrl);
+  };
+  img.onerror = () => alert('Failed to load image.');
+  img.src = src;
+}
+
+function drawThumbnail(img){
+  const maxW = dropzone.clientWidth - 20;
+  const scale = Math.min(maxW / img.naturalWidth, 1);
+  const w = Math.round(img.naturalWidth * scale);
+  const h = Math.round(img.naturalHeight * scale);
+
+  thumbCanvas.width = w; thumbCanvas.height = h;
+  thumbCtx.clearRect(0,0,w,h);
+  thumbCtx.drawImage(img, 0, 0, w, h);
+
+  thumbCaption.textContent = `Image: ${img.naturalWidth}×${img.naturalHeight}`;
+  thumbWrap.classList.remove('hidden');
+  dropHint.classList.add('hidden');
+}
+
+function prepareWorkCanvas(img){
+  const maxSide = 640;
+  const w = img.naturalWidth, h = img.naturalHeight;
+  const s = Math.min(maxSide / w, maxSide / h, 1);
+  workCanvas.width = Math.round(w * s);
+  workCanvas.height = Math.round(h * s);
+  workCtx.clearRect(0,0,workCanvas.width,workCanvas.height);
+  workCtx.drawImage(img, 0, 0, workCanvas.width, workCanvas.height);
+}
+
+/* ---------------- Backend call ---------------- */
+async function callLLM(imageDataUrl){
+  try{
+    showOverlay(true);
+    const provLabel = providerBadge.textContent || 'LLM';
+    setOverlayText(`Analyzing with ${provLabel}…`);
+    statusEl.textContent='Sending to backend…';
+    llmStatusEl.textContent=`Analyzing with ${provLabel}…`;
+
+    const resp = await fetch(`${API_BASE}/api/analyze`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ imageDataUrl })
+    });
+
+    const data = await resp.json();
+    if(!resp.ok) throw new Error(data?.error || 'Backend error');
+
+    if (data && data.error && data.raw){
+      renderMeta({});
+      renderSections({ visual: data.raw });
+      statusEl.textContent='Provider returned non-JSON. Displaying raw text.';
+      llmStatusEl.textContent='Completed with raw output.';
+      showToast('Provider returned non-JSON; showing raw text.', false);
+      return;
+    }
+
+    state.report = data;
+    renderMeta(data.meta || {});
+    renderSections(data.sections || {});
+    statusEl.textContent='Done ✔';
+    llmStatusEl.textContent=`${provLabel} analysis completed.`;
+    showToast('Analysis completed ✓', true);
+  }catch(e){
+    console.error(e);
+    statusEl.textContent='Failed: ' + (e.message || e);
+    llmStatusEl.textContent='Analysis failed.';
+    showToast(e.message || 'Analysis failed', false);
+  }finally{
+    showOverlay(false);
+  }
+}
+
+/* ---------------- Renderers ---------------- */
+function renderMeta(m){
+  const safe = v => (v===undefined||v===null||v==='') ? '—' : v;
+  const rows = [
+    ['Title',  safe(m.title)],
+    ['Artist', safe(m.artist)],
+    ['Year',   safe(m.year)],
+    ['Medium', safe(m.medium)],
+    ['Region / Culture', safe(m.region)],
+    ['Notes',  safe(m.notes)]
+  ];
+  metaBox.innerHTML = rows.map(([k,v]) => `
+    <div class="meta-key">${k}</div>
+    <div class="meta-val">${v}</div>
+  `).join('');
+}
+
+function renderSections(s){
+  const ICONS = {
+    visual:     { d:'M12 3l2.5 4 4.5 1-3.3 3.2.8 4.6L12 14l-4 1.8.8-4.6L5.5 8l4.5-1L12 3z', mode:'fill' },
+    genre:      { d:'M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h10v2H4v-2z', mode:'fill' },
+    color:      { d:'M12 3a9 9 0 100 18 9 9 0 000-18zm1 9h6a7 7 0 01-7 7v-6z', mode:'fill' },
+    shape:      { d:'M12 3l9 7-9 7-9-7 9-7z', mode:'fill' },
+    artifact:   { d:'M4 5h16v14H4z', mode:'fill' },
+    historical: { d:'M6 6h12v2H6zM6 10h12v2H6zM6 14h8v2H6z', mode:'fill' },
+    cultural:   { d:'M12 2a7 7 0 017 7c0 3-2 5-4 6l1 5-4-3-4 3 1-5c-2-1-4-3-4-6a7 7 0 017-7z', mode:'fill' },
+    line:       { d:'M3 6h18 M3 12h18 M3 18h18 M12 6v12 M3 6l18 12 M21 6L3 18', mode:'stroke' }
+  };
+
+  // Left column (visual-related)
+  const leftOrder = [
+    ['Visual Analysis', s.visual, ICONS.visual],
+    ['Color', s.color, ICONS.color],
+    ['Line & Perspective', s.line, ICONS.line],
+    ['Shape & Form', s.shape, ICONS.shape],
+    ['Artifact Type', s.artifact, ICONS.artifact],
+  ];
+
+  // Right column (historical & cultural)
+  const rightOrder = [
+    ['Genre / Style', s.genre, ICONS.genre],
+    ['Historical Context', s.historical, ICONS.historical],
+    ['Cultural Significance', s.cultural, ICONS.cultural],
+  ];
+
+  analysisLeft.innerHTML  = leftOrder.map(([t,b,i])  => sectionCard(t,b,i)).join('');
+  analysisRight.innerHTML = rightOrder.map(([t,b,i]) => sectionCard(t,b,i)).join('');
+}
+
+/* ---------------- Export ---------------- */
+function toMarkdown(data){
+  const m = data.meta || {}, s = data.sections || {};
+  const sec = (t,b) => `\n### ${t}\n\n${b||'—'}`;
+  return [
+    `# Art Appreciation Sheet`,
+    `**Title**: ${m.title||'—'}  \n**Artist**: ${m.artist||'—'}  \n**Year**: ${m.year||'—'}  \n**Medium**: ${m.medium||'—'}  \n**Region/Culture**: ${m.region||'—'}`,
+    sec('Visual Analysis', s.visual),
+    sec('Genre / Style', s.genre),
+    sec('Color', s.color),
+    sec('Line & Perspective', s.line),
+    sec('Shape & Form', s.shape),
+    sec('Artifact Type (Medium)', s.artifact),
+    sec('Historical Context', s.historical),
+    sec('Cultural Significance', s.cultural),
+    (m.notes? sec('Notes', m.notes):'')
+  ].join('\n\n');
+}
+function download(filename,text){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));
+  a.download=filename; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+exportJsonBtn.addEventListener('click',()=>{
+  if(!state.report){ alert('Upload image first.'); return; }
+  download('learnartic_result.json', JSON.stringify(state.report,null,2));
+});
+exportMdBtn.addEventListener('click',()=>{
+  if(!state.report){ alert('Upload image first.'); return; }
+  download('learnartic_result.md', toMarkdown(state.report));
+});
+
+/* ---------------- Re-run ---------------- */
+rerunBtn.addEventListener('click', async ()=>{
+  if(!state.lastImageDataUrl) return alert('Please upload an image first.');
+  await callLLM(state.lastImageDataUrl);
+});
+
+/* ---------------- Init ---------------- */
+detectProvider();
+</script>
+</body>
+</html>

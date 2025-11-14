@@ -1,0 +1,55 @@
+2025-10-17T17:16:01: GoogleGenerativeAIFetchError: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash #model name:generateContent: [404 Not Found] 
+2025-10-17T17:16:01:     at handleResponseNotOk (/home/csgrad/naiquanl/LLMArt/App/node_modules/@google/generative-ai/dist/index.js:414:11)
+2025-10-17T17:16:01:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-10-17T17:16:01:     at async makeRequest (/home/csgrad/naiquanl/LLMArt/App/node_modules/@google/generative-ai/dist/index.js:387:9)
+2025-10-17T17:16:01:     at async generateContent (/home/csgrad/naiquanl/LLMArt/App/node_modules/@google/generative-ai/dist/index.js:832:22)
+2025-10-17T17:16:01:     at async analyzeWithGemini (/home/csgrad/naiquanl/LLMArt/App/server/server.js:102:18)
+2025-10-17T17:16:01:     at async /home/csgrad/naiquanl/LLMArt/App/server/server.js:185:16 {
+2025-10-17T17:16:01:   status: 404,
+2025-10-17T17:16:01:   statusText: 'Not Found',
+2025-10-17T17:16:01:   errorDetails: undefined
+2025-10-17T17:16:01: }
+2025-10-17T17:16:13: GoogleGenerativeAIFetchError: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash #model name:generateContent: [404 Not Found] 
+2025-10-17T17:16:13:     at handleResponseNotOk (/home/csgrad/naiquanl/LLMArt/App/node_modules/@google/generative-ai/dist/index.js:414:11)
+2025-10-17T17:16:13:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-10-17T17:16:13:     at async makeRequest (/home/csgrad/naiquanl/LLMArt/App/node_modules/@google/generative-ai/dist/index.js:387:9)
+2025-10-17T17:16:13:     at async generateContent (/home/csgrad/naiquanl/LLMArt/App/node_modules/@google/generative-ai/dist/index.js:832:22)
+2025-10-17T17:16:13:     at async analyzeWithGemini (/home/csgrad/naiquanl/LLMArt/App/server/server.js:102:18)
+2025-10-17T17:16:13:     at async /home/csgrad/naiquanl/LLMArt/App/server/server.js:185:16 {
+2025-10-17T17:16:13:   status: 404,
+2025-10-17T17:16:13:   statusText: 'Not Found',
+2025-10-17T17:16:13:   errorDetails: undefined
+2025-10-17T17:16:13: }
+2025-10-17T17:17:26: GoogleGenerativeAIFetchError: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash #model name:generateContent: [404 Not Found] 
+2025-10-17T17:17:26:     at handleResponseNotOk (/home/csgrad/naiquanl/LLMArt/App/node_modules/@google/generative-ai/dist/index.js:414:11)
+2025-10-17T17:17:26:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-10-17T17:17:26:     at async makeRequest (/home/csgrad/naiquanl/LLMArt/App/node_modules/@google/generative-ai/dist/index.js:387:9)
+2025-10-17T17:17:26:     at async generateContent (/home/csgrad/naiquanl/LLMArt/App/node_modules/@google/generative-ai/dist/index.js:832:22)
+2025-10-17T17:17:26:     at async analyzeWithGemini (/home/csgrad/naiquanl/LLMArt/App/server/server.js:102:18)
+2025-10-17T17:17:26:     at async /home/csgrad/naiquanl/LLMArt/App/server/server.js:185:16 {
+2025-10-17T17:17:26:   status: 404,
+2025-10-17T17:17:26:   statusText: 'Not Found',
+2025-10-17T17:17:26:   errorDetails: undefined
+2025-10-17T17:17:26: }
+2025-10-17T17:18:36: GoogleGenerativeAIFetchError: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash #model name:generateContent: [404 Not Found] 
+2025-10-17T17:18:36:     at handleResponseNotOk (/home/csgrad/naiquanl/LLMArt/App/node_modules/@google/generative-ai/dist/index.js:414:11)
+2025-10-17T17:18:36:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-10-17T17:18:36:     at async makeRequest (/home/csgrad/naiquanl/LLMArt/App/node_modules/@google/generative-ai/dist/index.js:387:9)
+2025-10-17T17:18:36:     at async generateContent (/home/csgrad/naiquanl/LLMArt/App/node_modules/@google/generative-ai/dist/index.js:832:22)
+2025-10-17T17:18:36:     at async analyzeWithGemini (/home/csgrad/naiquanl/LLMArt/App/server/server.js:102:18)
+2025-10-17T17:18:36:     at async /home/csgrad/naiquanl/LLMArt/App/server/server.js:185:16 {
+2025-10-17T17:18:36:   status: 404,
+2025-10-17T17:18:36:   statusText: 'Not Found',
+2025-10-17T17:18:36:   errorDetails: undefined
+2025-10-17T17:18:36: }
+2025-10-17T17:24:14: GoogleGenerativeAIFetchError: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash #model name:generateContent: [404 Not Found] 
+2025-10-17T17:24:14:     at handleResponseNotOk (/home/csgrad/naiquanl/LLMArt/App/node_modules/@google/generative-ai/dist/index.js:414:11)
+2025-10-17T17:24:14:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-10-17T17:24:14:     at async makeRequest (/home/csgrad/naiquanl/LLMArt/App/node_modules/@google/generative-ai/dist/index.js:387:9)
+2025-10-17T17:24:14:     at async generateContent (/home/csgrad/naiquanl/LLMArt/App/node_modules/@google/generative-ai/dist/index.js:832:22)
+2025-10-17T17:24:14:     at async analyzeWithGemini (/home/csgrad/naiquanl/LLMArt/App/server/server.js:102:18)
+2025-10-17T17:24:14:     at async /home/csgrad/naiquanl/LLMArt/App/server/server.js:185:16 {
+2025-10-17T17:24:14:   status: 404,
+2025-10-17T17:24:14:   statusText: 'Not Found',
+2025-10-17T17:24:14:   errorDetails: undefined
+2025-10-17T17:24:14: }
