@@ -1,3 +1,4 @@
+# LLM4Art
 LLM4Art — Direct LLM (Gemini / OpenAI)
 
 A single-page app + Node backend that analyzes an uploaded artwork image and returns a structured art appreciation sheet (Visual Analysis, Genre/Style, Color, Line & Perspective, Shape & Form, Artifact Type, Historical Context, Cultural Significance) and basic metadata (Title/Artist/Year/Medium/Region).
@@ -64,4 +65,4 @@ The image is resized in the browser and sent as a dataURL to the backend.
 Keep your real .env out of version control; commit .env.example instead.
 
 If a port is in use, the script attempts to clean it. You can also override ports via env vars as shown above.# LLM4Art
-# LLM4Art
+
